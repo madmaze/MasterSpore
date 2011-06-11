@@ -29,14 +29,15 @@ def startNodes(ami, inst_size, keyName, maxPrice, nodecnt):
 	GF.log("... starting " + str(nodecnt) + " node(s)", 1);
 	try:
 		#res = GF.run("ec2-request-spot-instances " + ami + " -p " + maxPrice)
-		res = ""
-		print "ec2-request-spot-instances " + ami + " -p " + str(maxPrice) + " -instance-type " + inst_size + " -n " + str(nodecnt) + " --type one-time" + " --key " + keyName
+		
+		res = GF.run("ec2-request-spot-instances " + ami + " -p " + str(maxPrice) + " -instance-type " + inst_size + " -n " + str(nodecnt) + " --type one-time" + " --key " + keyName)
 		if res.find("timeout")>=0:
 			print "TIMEOUT: ", res
 			return -1
 		if res.find("InvalidAMIID")>=0:
 			print "INVALID AMI ID: ", res
 			return -1
+		print res
 	except Exception as x:
 		print x, "\n", res
 		return -1
@@ -64,23 +65,96 @@ def getRunningInstances():
 		for line in res.split("\n"):
 			if line.find("INSTANCE")>=0:
 				inst=line.split("\t")
-				nodes.append(CLnode.CLnode(inst[1],inst[1],inst[5],inst[2],inst[6],inst[9],inst[10]))
-				print len(nodes)
+				nodes.append(CLnode.CLnode(inst[1],inst[1],inst[5],inst[2],inst[6],inst[9],inst[10],inst[0],inst[3]))
 	except Exception as x:
 		print x, "\n", res
 		return -1
-		
-	for node in nodes:
-		node.desc()
-
+	GF.addNewNodes(nodes)
 	
+	#ec2-describe-spot-instance-requests
+def getSpotRequests():
+	try:
+		res = GF.run("ec2-describe-spot-instance-requests")
+		if res.find("timeout")>=0:
+			print "TIMEOUT: ", res
+			return -1
+		for line in res.split("\n"):
+			if line.find("INSTANCE")>=0:
+				inst=line.split("\t")
+				GF.reqests.append(CLnode.CLnode(inst[1],inst[1],inst[5],'','','',inst[6],inst[0]))
+	except Exception as x:
+		print x, "\n", res
+		return -1
+
+
 if __name__ == "__main__":
+	ami="ami-06ad526f"
+	size="t1.micro"
+	key="id_rsa"
+	maxPrice=.01
+	print "Cluster manager v0.1";
+	argc=0
 	for arg in sys.argv[1:]:
+		argc+=1
 		if arg == "-debug":
 			GF.logLevel=2
 		if arg == "-info":
 			GF.logLevel=1
-	GF.log("Starting cluster manager...", 1);
+		if arg == "-list" or arg == "-l":
+			getRunningInstances()
+			cnt=0
+			for node in GF.nodes:
+				if node.running() is True:
+					cnt+=1
+				node.desc()
+			GF.log("There are a totoal of "+str(cnt)+" instances running.",0)
+			sys.exit()
+		if arg == "-listblock" or arg == "-lb":
+			getRunningInstances()
+			cnt=0
+			for node in GF.nodes:
+				if node.running() is True:
+					cnt+=1
+				node.desc_detail()
+			GF.log("There are a totoal of "+str(cnt)+" instances running.",0)
+			sys.exit()
+		if arg == "-listspots" or arg == "-ls":
+			getSpotRequests()
+			runcnt=0
+			ocnt=0
+			for node in GF.reqests:
+				if node.statys() == "active":
+					runcnt+=1
+				if node.statys() == "open":
+					ocnt+=1
+				node.desc()
+			GF.log("There are a totoal of "+str(runcnt)+" active and "+str(ocnt)+" waiting to launch",0)
+			sys.exit()
+		if arg == "-launch" and len(sys.argv) >= argc+2:
+			try:
+				n=int(sys.argv[argc+1])
+				if n > 0:
+					if GF.confirmQuestion("This will create "+str(n)+" instance(s). \nAre you sure you want to continue?") is False:
+						sys.exit()
+					print "Launching "+str(n)+" instances"
+					launchCluster(ami, size, key, maxPrice, n)
+				else:
+					print "Please specify positive number"
+				
+			except Exception as x:
+				print "Please specify number after -launch"
+				print x, sys.argv[argc+1]
+			sys.exit()
+		if arg == "-shutdown" or arg == "-killall":
+			# ask user for confirm
+			if GF.confirmQuestion("!!This will TERMINATE all running instances!! \nAre you sure you want to continue?") is False:
+				sys.exit()
+			getRunningInstances()
+			if len(GF.nodes)==0:
+				print "There are currently no nodes to kill"
+			for n in GF.nodes:
+				n.kill()
+	
 	#ec2-describe-images -a | grep ami-06ad526f
-	getRunningInstances()
+	#getRunningInstances()
 	#launchCluster("ami-06ad526f", "t1.micro", "id_rsa", .01, 10)

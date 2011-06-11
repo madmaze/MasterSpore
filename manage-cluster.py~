@@ -3,30 +3,15 @@
 import os
 import sys
 import time
-#######################
-# 0 = none
-# 1 = info
-# 2 = debug
-logLevel=0
-######################
-
-def run(cmd):
-	f=os.popen(cmd)
-	buf=""
-	for i in f.readlines():
-		buf+=i
-	return buf.strip()
-
-def log(msg, lvl):
-	if logLevel >= lvl:
-		print msg
+import CLnode
+import GF
 		
 
 def curSpotCost(inst_size):
 	lt = time.localtime(time.time())	
 	curdate = str(lt[0])+"-"+str(lt[1])+"-"+str(lt[2])+"T"+str(lt[3])+":"+str(lt[4])+":"+str(lt[5])+":"+str(lt[6])+"-0000"
 	try:
-		res = run("ec2-describe-spot-price-history -d Linux/UNIX --region us-east-1 --instance-type "+inst_size+" -s "+curdate)
+		res = GF.run("ec2-describe-spot-price-history -d Linux/UNIX --region us-east-1 --instance-type "+inst_size+" -s "+curdate)
 		if res.find("timeout")>=0:
 			print "TIMEOUT: ", res
 			return -1
@@ -37,10 +22,28 @@ def curSpotCost(inst_size):
 	except Exception as x:
 		print x, "\n", res
 		return -1
-	log("Current Instance Cost: "+str(cost), 1);
+	GF.log("Current Instance Cost: "+str(cost), 1);
 	return cost
 
-def launchCluster(maxPrice,inst_size,nodes):
+def startNodes(ami, inst_size, keyName, maxPrice, nodecnt):
+	GF.log("... starting " + str(nodecnt) + " node(s)", 1);
+	try:
+		#res = GF.run("ec2-request-spot-instances " + ami + " -p " + maxPrice)
+		
+		res = GF.run("ec2-request-spot-instances " + ami + " -p " + str(maxPrice) + " -instance-type " + inst_size + " -n " + str(nodecnt) + " --type one-time" + " --key " + keyName)
+		if res.find("timeout")>=0:
+			print "TIMEOUT: ", res
+			return -1
+		if res.find("InvalidAMIID")>=0:
+			print "INVALID AMI ID: ", res
+			return -1
+		print res
+	except Exception as x:
+		print x, "\n", res
+		return -1
+
+def launchCluster(ami, inst_size, keyName, maxPrice, nodes):
+	GF.log("Maximum Price: "+str(maxPrice), 1);
 	curPrice=curSpotCost(inst_size)
 	if curPrice == -1:
 		print "Error: Failed to get current spot price."
@@ -48,14 +51,69 @@ def launchCluster(maxPrice,inst_size,nodes):
 	if curPrice > maxPrice:
 		print "Error: Current spot price too high."
 		sys.exit(-2)
-	for n in range (0,nodes):
-		print n
+	GF.log("Launching "+str(nodes)+" nodes.", 1);
+	#for n in range (0,nodes):
+	startNodes(ami, inst_size, keyName, maxPrice, nodes)
 
-
+def getRunningInstances():
+	nodes = []
+	try:
+		res = GF.run("ec2-describe-instances")
+		if res.find("timeout")>=0:
+			print "TIMEOUT: ", res
+			return -1
+		for line in res.split("\n"):
+			if line.find("INSTANCE")>=0:
+				inst=line.split("\t")
+				nodes.append(CLnode.CLnode(inst[1],inst[1],inst[5],inst[2],inst[6],inst[9],inst[10]))
+	except Exception as x:
+		print x, "\n", res
+		return -1
+	GF.addNewNodes(nodes)
+	
 if __name__ == "__main__":
+	ami="ami-06ad526f"
+	size="t1.micro"
+	key="id_rsa"
+	maxPrice=.01
+	print "Cluster manager v0.1";
+	argc=0
 	for arg in sys.argv[1:]:
+		argc+=1
 		if arg == "-debug":
-			logLevel=2
+			GF.logLevel=2
 		if arg == "-info":
-			logLevel=1
-	launchCluster(.1, "t1.micro", 10)
+			GF.logLevel=1
+		if arg == "-list" or arg == "-l":
+			getRunningInstances()
+			cnt=0
+			for node in GF.nodes:
+				if node.running() is True:
+					cnt+=1
+				node.desc()
+			GF.log("There are a totoal of "+str(cnt)+" instances running.",0)
+			sys.exit()
+		if arg == "-launch" and len(sys.argv) >= argc+2:
+			try:
+				n=int(sys.argv[argc+1])
+				if n > 0:
+					print "Launching "+str(n)+" instances"
+					launchCluster(ami, size, key, maxPrice, n)
+				else:
+					print "Please specify positive number"
+				
+			except Exception as x:
+				print "Please specify number after -launch"
+				print x, sys.argv[argc+1]
+			sys.exit()
+		if arg == "-shutdown" or arg == "-kill":
+			# ask user for confirm
+			getRunningInstances()
+			if len(GF.nodes)==0:
+				print "There are currently no nodes to kill"
+			for n in GF.nodes:
+				n.kill()
+	
+	#ec2-describe-images -a | grep ami-06ad526f
+	#getRunningInstances()
+	#launchCluster("ami-06ad526f", "t1.micro", "id_rsa", .01, 10)
