@@ -150,7 +150,27 @@ if __name__ == "__main__":
 	payloadDir='./payload'
 	print "Cluster manager v0.1";
 	argc=0
-	for arg in sys.argv[1:]:
+	try:
+		opts, args = getopt.getopt(sys.argv[1:], "ho:v", ["help", "output="])
+        except getopt.GetoptError, err:
+		# print help information and exit:
+		print str(err) # will print something like "option -a not recognized"
+		usage()
+		sys.exit(2)
+	output = None
+        verbose = False
+        for o, a in opts:
+		if o == "-v":
+			verbose = True
+		elif o in ("-h", "--help"):
+			usage()
+			sys.exit()
+		elif o in ("-o", "--output"):
+			output = a
+		else:
+			assert False, "unhandled option"
+			
+	'''for arg in sys.argv[1:]:
 		argc+=1
 		if arg == "-debug":
 			GF.logLevel=2
@@ -255,7 +275,7 @@ if __name__ == "__main__":
 						n.deploy(payload,sshKey,True)
 		if arg == "-monitor":
 			monitor(10,10)
-	
+	'''
 	#ec2-describe-images -a | grep ami-06ad526f
 	#getRunningInstances()
 	#launchCluster("ami-06ad526f", "t1.micro", "id_rsa", .01, 10)
