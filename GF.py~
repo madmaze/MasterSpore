@@ -10,6 +10,7 @@ import CLnode
 logLevel=0
 ######################
 nodes=[]
+reqests=[]
 
 def run(cmd):
 	f=os.popen(cmd)
@@ -29,8 +30,7 @@ def addNewNodes(new):
 			nodes[exists]=n.copy()
 		else:
 			nodes.append(n)
-			
-			
+				
 def instExists(node):
 	cnt=0
 	for n in nodes:
@@ -38,3 +38,13 @@ def instExists(node):
 			return cnt;
 		cnt+=1
 	return -1
+	
+def confirmQuestion(Question):
+	var=""
+	while var != "y" and var != "n":
+		var = raw_input(Question + " (y/n):" )
+	if var == "y":
+		return True
+	else:
+		return False
+		

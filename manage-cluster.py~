@@ -85,13 +85,68 @@ def getSpotRequests():
 	except Exception as x:
 		print x, "\n", res
 		return -1
+		
+def buildBundle(payload, payloadDir):
+	try:
+		#RM old bundle
+		res=GF.run("rm "+payload)
+		GF.log("rm "+payload,1)
+		#make new bundle
+		res=GF.run("tar cvf "+payload+' '+payloadDir+"/*")
+		GF.log("tar cvf "+payload+' '+payloadDir+"/*",1)
+	except Exception as x:
+		print x, "\n", res
+		sys.exit()
 
+def monitor(n, timeout):
+	allStarted=True
+	
+	for i in range(0,n):
+		allStarted=True
+		getSpotRequests()
+		#getRunningInstances()
+		for n in GF.requests:
+			if n.status=="open":
+				allStarted=False
+			if
+		if allStarted is True:
+			break
+		time.sleep(timeout)
+	if allStarted is False:	
+		print "All instances did not start during designated time."
+		if GF.confirmQuestion("Would you like to continue?") is True:
+			monitor(n, timeout)
+		else:
+			sys.exit()
+	else:
+		for i in range(0,n):
+			allStarted=True
+			getRunningInstances()
+			for n in GF.nodes:
+				if n.status=="pending":
+					allStarted=False
+			if allStarted is True:
+				break
+		if allStarted is False:
+			print "All instances did not start during designated time."
+			if GF.confirmQuestion("Would you like to continue?") is True:
+				monitor(n, timeout)
+			else:
+				sys.exit()
+		else:
+			#launch?!
+			
+	
 
 if __name__ == "__main__":
 	ami="ami-06ad526f"
 	size="t1.micro"
 	key="id_rsa"
 	maxPrice=.01
+	sshKey='/home/madmaze/.ec2/pkey'
+	rebuildBundle=True
+	payload='./bundle.tar'
+	payloadDir='./payload'
 	print "Cluster manager v0.1";
 	argc=0
 	for arg in sys.argv[1:]:
@@ -123,9 +178,9 @@ if __name__ == "__main__":
 			runcnt=0
 			ocnt=0
 			for node in GF.reqests:
-				if node.statys() == "active":
+				if node.status == "active":
 					runcnt+=1
-				if node.statys() == "open":
+				if node.status == "open":
 					ocnt+=1
 				node.desc()
 			GF.log("There are a totoal of "+str(runcnt)+" active and "+str(ocnt)+" waiting to launch",0)
@@ -158,18 +213,47 @@ if __name__ == "__main__":
 			# ask user for confirm
 			foundinst=False
 			getRunningInstances()
-			var = raw_input("Which host would you like to kill?: ")
+			if len(sys.argv) >= argc+2:
+				var=sys.argv[argc+1].strip()
+			else:
+				var = raw_input("Which host would you like to deploy?: ").strip()
+
 			for n in GF.nodes:
 				if n.instName==var:
 					foundinst=True
 			if foundinst is False:
-				print "There is currently no instance by the ID: "+var
+				print "There is currently no running instance by the ID: "+var
 			else:
 				if GF.confirmQuestion("!!This will kill the instance: "+var+"!\nAre you sure you want to continue?") is False:
 					sys.exit()
 				for n in GF.nodes:
 					if n.instName==var:
 						n.kill()
+		if arg == "-deploy":
+			# ask user for confirm
+			foundinst=False
+			getRunningInstances()
+			if len(sys.argv) >= argc+2:
+				var=sys.argv[argc+1].strip()
+			else:                       
+				var = raw_input("Which host would you like to deploy?: ").strip()
+			
+			for n in GF.nodes:
+				if n.instName==var and n.status=='running':
+					foundinst=True
+			if foundinst is False:
+				print "There is currently no running instance by the ID: "+var
+			else:
+				if GF.confirmQuestion("!!This will deploy on the instance: "+var+"!\nAre you sure you want to continue?") is False:
+					sys.exit()
+				if rebuildBundle is True:
+					print "Building Bundle..."
+					buildBundle(payload, payloadDir)
+				for n in GF.nodes:
+					if n.instName==var:
+						n.deploy(payload,sshKey,True)
+		if arg == "-monitor":
+			monitor(10,10)
 	
 	#ec2-describe-images -a | grep ami-06ad526f
 	#getRunningInstances()

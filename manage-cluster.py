@@ -5,6 +5,7 @@ import sys
 import time
 import CLnode
 import GF
+import getopt
 		
 
 def curSpotCost(inst_size):
@@ -99,12 +100,43 @@ def buildBundle(payload, payloadDir):
 		sys.exit()
 
 def monitor(n, timeout):
+	allStarted=True
+	
 	for i in range(0,n):
+		allStarted=True
 		getSpotRequests()
-		getRunningInstances()
+		#getRunningInstances()
+		for n in GF.requests:
+			if n.status=="open":
+				allStarted=False
+		if allStarted is True:
+			break
 		time.sleep(timeout)
-		for n in GF.nodes:
-			n.desc()
+	if allStarted is False:	
+		print "All instances did not start during designated time."
+		if GF.confirmQuestion("Would you like to continue?") is True:
+			monitor(n, timeout)
+		else:
+			sys.exit()
+	else:
+		for i in range(0,n):
+			allStarted=True
+			getRunningInstances()
+			for n in GF.nodes:
+				if n.status=="pending":
+					allStarted=False
+			if allStarted is True:
+				break
+		if allStarted is False:
+			print "All instances did not start during designated time."
+			if GF.confirmQuestion("Would you like to continue?") is True:
+				monitor(n, timeout)
+			else:
+				sys.exit()
+		else:
+			#launch?!
+			print "stuff"
+			
 	
 
 if __name__ == "__main__":
