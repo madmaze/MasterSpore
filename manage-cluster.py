@@ -151,22 +151,124 @@ if __name__ == "__main__":
 	print "Cluster manager v0.1";
 	argc=0
 	try:
-		opts, args = getopt.getopt(sys.argv[1:], "ho:v", ["help", "output="])
+		opts, args = getopt.getopt(sys.argv[1:], "dil", ["debug", "info", "list", "listspots", "listblock", 
+		"launch=", "shutdown", "killall", "kill=","deploy=","master="])
         except getopt.GetoptError, err:
 		# print help information and exit:
 		print str(err) # will print something like "option -a not recognized"
-		usage()
 		sys.exit(2)
+
 	output = None
         verbose = False
         for o, a in opts:
-		if o == "-v":
-			verbose = True
-		elif o in ("-h", "--help"):
-			usage()
+		if o in ("-d", "--debug"): 
+			GF.logLevel=2
+		elif o in ("-i", "--info"):
+			GF.logLevel=1
+		elif o in ("-l", "--list"):
+			getRunningInstances()
+			cnt=0
+			for node in GF.nodes:
+				if node.running() is True:
+					cnt+=1
+				node.desc()
+			GF.log("There are a totoal of "+str(cnt)+" instances running.",0)
+			sys.exit()  
+		elif o in ("--listblock"):
+			getRunningInstances()
+			cnt=0
+			for node in GF.nodes:
+				if node.running() is True:
+					cnt+=1
+				node.desc_detail()
+			GF.log("There are a totoal of "+str(cnt)+" instances running.",0)
 			sys.exit()
-		elif o in ("-o", "--output"):
-			output = a
+		elif o in ("--listspots"):
+			getSpotRequests()
+			runcnt=0
+			ocnt=0
+			for node in GF.reqests:
+				if node.status == "active":
+					runcnt+=1
+				if node.status == "open":
+					ocnt+=1
+				node.desc()
+			GF.log("There are a totoal of "+str(runcnt)+" active and "+str(ocnt)+" waiting to launch",0)
+			sys.exit()
+		elif o in ("--master"):
+			master=a
+		elif o in ("--launch"):
+			#TODO: integrate MASTER
+			if  len(a.split(',')) == 2:
+				cnt=a.split(',')[0]
+				size=a.split(',')[1]
+				try:
+					n=int(cnt)
+					if n > 0:
+						if GF.confirmQuestion("This will create "+str(n)+" instance(s). \nAre you sure you want to continue?") is False:
+							sys.exit()
+						print "Launching "+str(n)+" instances"
+						launchCluster(ami, size, key, maxPrice, n)
+					else:
+						print "Please specify positive number"
+					
+				except Exception as x:
+					print "Please specify number after -launch"
+					print x, sys.argv[argc+1]
+				sys.exit()
+			else:
+				print "Please specify in the following fashion --launch=<N>,<inst size>"
+		elif o in ("--shutdown","--killall"):
+			# ask user for confirm
+			if GF.confirmQuestion("!!This will TERMINATE all running instances!! \nAre you sure you want to continue?") is False:
+				sys.exit()
+			getRunningInstances()
+			if len(GF.nodes)==0:
+				print "There are currently no nodes to kill"
+			for n in GF.nodes:
+				n.kill()
+		elif o in ("--kill"):
+			foundinst=False
+			getRunningInstances()
+			if len(a) >= 6:
+				var=a .strip()
+			else:
+				var = raw_input("Which host would you like to deploy?: ").strip()
+
+			for n in GF.nodes:
+				if n.instName==var:
+					foundinst=True
+			if foundinst is False:
+				print "There is currently no running instance by the ID: "+var
+			else:
+				if GF.confirmQuestion("!!This will kill the instance: "+var+"!\nAre you sure you want to continue?") is False:
+					sys.exit()
+				for n in GF.nodes:
+					if n.instName==var:
+						n.kill()
+		elif o in ("--deploy"):
+			# ask user for confirm
+			foundinst=False
+			getRunningInstances()
+			if len(a) >= 6:
+				var=a .strip()
+			else:                       
+				var = raw_input("Which host would you like to deploy?: ").strip()
+			
+			for n in GF.nodes:
+				if n.instName==var and n.status=='running':
+					foundinst=True
+			if foundinst is False:
+				print "There is currently no running instance by the ID: "+var
+			else:
+				if GF.confirmQuestion("!!This will deploy on the instance: "+var+"!\nAre you sure you want to continue?") is False:
+					sys.exit()
+				if rebuildBundle is True:
+					print "Building Bundle..."
+					buildBundle(payload, payloadDir)
+				for n in GF.nodes:
+					if n.instName==var:
+						n.deploy(payload,sshKey,True)
 		else:
 			assert False, "unhandled option"
 			
