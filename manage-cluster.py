@@ -154,6 +154,22 @@ if __name__ == "__main__":
 				print "There are currently no nodes to kill"
 			for n in GF.nodes:
 				n.kill()
+		if arg == "-kill":
+			# ask user for confirm
+			foundinst=False
+			getRunningInstances()
+			var = raw_input("Which host would you like to kill?: ")
+			for n in GF.nodes:
+				if n.instName==var:
+					foundinst=True
+			if foundinst is False:
+				print "There is currently no instance by the ID: "+var
+			else:
+				if GF.confirmQuestion("!!This will kill the instance: "+var+"!\nAre you sure you want to continue?") is False:
+					sys.exit()
+				for n in GF.nodes:
+					if n.instName==var:
+						n.kill()
 	
 	#ec2-describe-images -a | grep ami-06ad526f
 	#getRunningInstances()

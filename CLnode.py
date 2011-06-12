@@ -37,7 +37,7 @@ class CLnode:
 			return -1
 	
 	def desc(self):
-		print self.ntype,self.instID,self.instName,self.url,self.status,self.ami,self.key,self.size,self.date
+		print self.ntype,self.instID,self.instName,self.status,self.url,self.ami,self.key,self.size,self.date
 
 	def desc_detail(self):
 		print "Instance Type:\t\t"+self.ntype
@@ -53,7 +53,7 @@ class CLnode:
 
 		
 	
-	def statys(self):
+	def status(self):
 		return self.status
 	
 	def running(self):
@@ -64,3 +64,27 @@ class CLnode:
 	
 	def copy(self):
 		return CLnode(self.instID,self.instName,self.status,self.ami,self.key,self.size,self.date,self.ntype,self.url)
+	def deploy(self,payload,launch=False):
+		# COPY payload
+		try:
+			res=GF.run("scp -i ~/.ec2/pkey /home/madmaze/.ec2/pkey  ubuntu@ec2-50-19-62-60.compute-1.amazonaws.com:~/.ssh/")
+		except Exception as x:
+			print x, "\n", res
+			return -1
+		
+		# EXTRACT payload
+		try:
+			res=GF.run("scp -i ~/.ec2/pkey /home/madmaze/.ec2/pkey  ubuntu@ec2-50-19-62-60.compute-1.amazonaws.com:~/.ssh/")
+		except Exception as x:
+			print x, "\n", res
+			return -1
+		
+		if launch is True:
+			# LAUNCH Payload
+			try:
+				res=GF.run("scp -i ~/.ec2/pkey /home/madmaze/.ec2/pkey  ubuntu@ec2-50-19-62-60.compute-1.amazonaws.com:~/.ssh/")
+			except Exception as x:
+				print x, "\n", res
+				return -1
+			
+			

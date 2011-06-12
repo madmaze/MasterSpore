@@ -43,7 +43,6 @@ def confirmQuestion(Question):
 	var=""
 	while var != "y" and var != "n":
 		var = raw_input(Question + " (y/n):" )
-		print var
 	if var == "y":
 		return True
 	else:
