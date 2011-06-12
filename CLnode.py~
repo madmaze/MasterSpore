@@ -10,8 +10,10 @@ class CLnode:
 	key=''
 	size=''
 	date=''
+	ntype=''
+	url=''
 	
-	def __init__(self, instID='',instName='',status='',ami='',key='',size='',date=''):
+	def __init__(self, instID='',instName='',status='',ami='',key='',size='',date='',ntype='',url=''):
 		self.instID=instID
 		self.instName=instName
 		self.status=status
@@ -19,6 +21,8 @@ class CLnode:
 		self.key=key
 		self.size=size
 		self.date=date
+		self.ntype=ntype
+		self.url=url
 	
 	def kill(self):
 		if self.status!="running":
@@ -33,8 +37,25 @@ class CLnode:
 			return -1
 	
 	def desc(self):
-		print self.instID,self.instName,self.status,self.ami,self.key,self.size,self.date
+		print self.ntype,self.instID,self.instName,self.status,self.url,self.ami,self.key,self.size,self.date
+
+	def desc_detail(self):
+		print "Instance Type:\t\t"+self.ntype
+		print "Instance ID:\t\t"+self.instID
+		print "Instance Name:\t\t"+self.instName
+		print "Status:\t\t\t"+self.status
+		print "Hostname/url:\t"+self.url
+		print "AMI:\t\t\t"+self.ami
+		print "Keypair:\t\t"+self.key
+		print "Instance Size:\t\t"+self.size
+		print "Date/Time started:\t"+self.date
+		print "===="
+
 		
+	
+	def status(self):
+		return self.status
+	
 	def running(self):
 		if self.status=="running":
 			return True
@@ -42,4 +63,28 @@ class CLnode:
 			return False
 	
 	def copy(self):
-		return CLnode(self.instID,self.instName,self.status,self.ami,self.key,self.size,self.date)
+		return CLnode(self.instID,self.instName,self.status,self.ami,self.key,self.size,self.date,self.ntype,self.url)
+	def deploy(self,payload,launch=False):
+		# COPY payload
+		try:
+			res=GF.run("scp -i ~/.ec2/pkey /home/madmaze/.ec2/pkey  ubuntu@ec2-50-19-62-60.compute-1.amazonaws.com:~/.ssh/")
+		except Exception as x:
+			print x, "\n", res
+			return -1
+		
+		# EXTRACT payload
+		try:
+			res=GF.run("scp -i ~/.ec2/pkey /home/madmaze/.ec2/pkey  ubuntu@ec2-50-19-62-60.compute-1.amazonaws.com:~/.ssh/")
+		except Exception as x:
+			print x, "\n", res
+			return -1
+		
+		if launch is True:
+			# LAUNCH Payload
+			try:
+				res=GF.run("scp -i ~/.ec2/pkey /home/madmaze/.ec2/pkey  ubuntu@ec2-50-19-62-60.compute-1.amazonaws.com:~/.ssh/")
+			except Exception as x:
+				print x, "\n", res
+				return -1
+			
+			
