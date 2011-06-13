@@ -64,17 +64,20 @@ class CLnode:
 	
 	def copy(self):
 		return CLnode(self.instID,self.instName,self.status,self.ami,self.key,self.size,self.date,self.ntype,self.url)
-	def deploy(self,payload,launch=False):
+		
+	def deploy(self,payload,sshKey,launch=False):
 		# COPY payload
 		try:
-			res=GF.run("scp -i ~/.ec2/pkey /home/madmaze/.ec2/pkey  ubuntu@ec2-50-19-62-60.compute-1.amazonaws.com:~/.ssh/")
+			res=GF.run("scp -i "+sshKey+" "+payload+"  ubuntu@"+self.url+":~/")
+			print "scp -i "+sshKey+" "+payload+"  ubuntu@"+self.url+":~/"
 		except Exception as x:
 			print x, "\n", res
 			return -1
 		
 		# EXTRACT payload
 		try:
-			res=GF.run("scp -i ~/.ec2/pkey /home/madmaze/.ec2/pkey  ubuntu@ec2-50-19-62-60.compute-1.amazonaws.com:~/.ssh/")
+			res=GF.run("ssh -i "+sshKey+" ubuntu@"+self.url+" 'tar xvf ~/bundle.tar;'")
+			print "ssh -i "+sshKey+" ubuntu@"+self.url+" 'tar xvf ~/bundle.tar;'"
 		except Exception as x:
 			print x, "\n", res
 			return -1
@@ -82,7 +85,8 @@ class CLnode:
 		if launch is True:
 			# LAUNCH Payload
 			try:
-				res=GF.run("scp -i ~/.ec2/pkey /home/madmaze/.ec2/pkey  ubuntu@ec2-50-19-62-60.compute-1.amazonaws.com:~/.ssh/")
+				res=GF.run("ssh -i "+sshKey+" ubuntu@"+self.url+" 'python ~/payload/setup.py'")
+				print "ssh -i "+sshKey+" ubuntu@"+self.url+" 'python ~/payload/setup.py'"
 			except Exception as x:
 				print x, "\n", res
 				return -1

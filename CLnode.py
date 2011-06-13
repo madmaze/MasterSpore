@@ -12,8 +12,9 @@ class CLnode:
 	date=''
 	ntype=''
 	url=''
+	master=False
 	
-	def __init__(self, instID='',instName='',status='',ami='',key='',size='',date='',ntype='',url=''):
+	def __init__(self, instID='',instName='',status='',ami='',key='',size='',date='',ntype='',url='',master=False):
 		self.instID=instID
 		self.instName=instName
 		self.status=status
@@ -23,6 +24,7 @@ class CLnode:
 		self.date=date
 		self.ntype=ntype
 		self.url=url
+		self.master=master
 	
 	def kill(self):
 		if self.status!="running":
@@ -37,10 +39,11 @@ class CLnode:
 			return -1
 	
 	def desc(self):
-		print self.ntype,self.instID,self.instName,self.status,self.url,self.ami,self.key,self.size,self.date
+		print self.ntype,self.master,self.instID,self.instName,self.status,self.url,self.ami,self.key,self.size,self.date
 
 	def desc_detail(self):
 		print "Instance Type:\t\t"+self.ntype
+		print "Is Master Node:\t\t"+str(self.master)
 		print "Instance ID:\t\t"+self.instID
 		print "Instance Name:\t\t"+self.instName
 		print "Status:\t\t\t"+self.status
@@ -63,9 +66,10 @@ class CLnode:
 			return False
 	
 	def copy(self):
-		return CLnode(self.instID,self.instName,self.status,self.ami,self.key,self.size,self.date,self.ntype,self.url)
+		return CLnode(self.instID,self.instName,self.status,self.ami,self.key,self.size,self.date,self.ntype,self.url,self.master)
 		
 	def deploy(self,payload,sshKey,launch=False):
+		# check for master/slave
 		# COPY payload
 		try:
 			res=GF.run("scp -i "+sshKey+" "+payload+"  ubuntu@"+self.url+":~/")

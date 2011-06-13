@@ -15,14 +15,14 @@ def curSpotCost(inst_size):
 		res = GF.run("ec2-describe-spot-price-history -d Linux/UNIX --region us-east-1 --instance-type "+inst_size+" -s "+curdate)
 		if res.find("timeout")>=0:
 			print "TIMEOUT: ", res
-			return -1
+			sys.exit()
 		cost=0
 		for i in res.split("\n"):
 			cost += float((i.split("\t"))[1]);
 		cost = cost/len(res.split("\n"))
 	except Exception as x:
 		print x, "\n", res
-		return -1
+		sys.exit()
 	GF.log("Current Instance Cost: "+str(cost), 1);
 	return cost
 
@@ -34,14 +34,14 @@ def startNodes(ami, inst_size, keyName, maxPrice, nodecnt):
 		res = GF.run("ec2-request-spot-instances " + ami + " -p " + str(maxPrice) + " -instance-type " + inst_size + " -n " + str(nodecnt) + " --type one-time" + " --key " + keyName)
 		if res.find("timeout")>=0:
 			print "TIMEOUT: ", res
-			return -1
+			sys.exit()
 		if res.find("InvalidAMIID")>=0:
 			print "INVALID AMI ID: ", res
-			return -1
+			sys.exit()
 		print res
 	except Exception as x:
 		print x, "\n", res
-		return -1
+		sys.exit()
 
 def launchCluster(ami, inst_size, keyName, maxPrice, nodes):
 	GF.log("Maximum Price: "+str(maxPrice), 1);
@@ -56,20 +56,44 @@ def launchCluster(ami, inst_size, keyName, maxPrice, nodes):
 	#for n in range (0,nodes):
 	startNodes(ami, inst_size, keyName, maxPrice, nodes)
 
+def launchMaster(ami, inst_size, keyName):
+	GF.log("Launching Master node..",1)
+	try:
+		res = GF.run("ec2-run-instances " + ami + " -k " + keyName + " -t " + size)
+		if res.find("InvalidAMIID")>=0:
+			print "INVALID AMI ID: ", res
+			sys.exit()
+		print res
+		i=0
+		lines=res.split("\n")
+		master=CLnode.CLnode()
+		for l in lines:
+			inst=l.split("\t")
+			for n in l.split("\t"):
+				print i,n
+				i+=1
+			if inst[0]=="INSTANCE":
+				master = CLnode.CLnode(inst[1],"MASTER",inst[5],inst[2],inst[6],inst[9],inst[10],inst[0],'',True)
+		master.desc_detail()	
+	except Exception as x:
+		print x, "\n", res
+		sys.exit()
+	
+
 def getRunningInstances():
 	nodes = []
 	try:
 		res = GF.run("ec2-describe-instances")
 		if res.find("timeout")>=0:
 			print "TIMEOUT: ", res
-			return -1
+			sys.exit()
 		for line in res.split("\n"):
 			if line.find("INSTANCE")>=0:
 				inst=line.split("\t")
 				nodes.append(CLnode.CLnode(inst[1],inst[1],inst[5],inst[2],inst[6],inst[9],inst[10],inst[0],inst[3]))
 	except Exception as x:
 		print x, "\n", res
-		return -1
+		sys.exit()
 	GF.addNewNodes(nodes)
 	
 	#ec2-describe-spot-instance-requests
@@ -78,14 +102,14 @@ def getSpotRequests():
 		res = GF.run("ec2-describe-spot-instance-requests")
 		if res.find("timeout")>=0:
 			print "TIMEOUT: ", res
-			return -1
+			sys.exit()
 		for line in res.split("\n"):
 			if line.find("INSTANCE")>=0:
 				inst=line.split("\t")
 				GF.reqests.append(CLnode.CLnode(inst[1],inst[1],inst[5],'','','',inst[6],inst[0]))
 	except Exception as x:
 		print x, "\n", res
-		return -1
+		sys.exit()
 		
 def buildBundle(payload, payloadDir):
 	try:
@@ -196,9 +220,21 @@ if __name__ == "__main__":
 			GF.log("There are a totoal of "+str(runcnt)+" active and "+str(ocnt)+" waiting to launch",0)
 			sys.exit()
 		elif o in ("--master"):
-			master=a
+			withlaunch=False
+			for o2, a2 in opts:
+				if o2 in ("--launch"):
+					withlaunch=True
+			if withlaunch is False:
+				if GF.confirmQuestion("This will create a master node of size "+a2+" \nAre you sure you want to continue?") is False:
+							sys.exit()
+				launchMaster(ami,a,key)
 		elif o in ("--launch"):
 			#TODO: integrate MASTER
+			for o2, a2 in opts:
+				if o2 in ("--master"):
+					if GF.confirmQuestion("This will create a master node of size "+a2+" \nAre you sure you want to continue?") is False:
+							sys.exit()
+					launchMaster(ami,a2,key)
 			if  len(a.split(',')) == 2:
 				cnt=a.split(',')[0]
 				size=a.split(',')[1]
@@ -272,112 +308,6 @@ if __name__ == "__main__":
 		else:
 			assert False, "unhandled option"
 			
-	'''for arg in sys.argv[1:]:
-		argc+=1
-		if arg == "-debug":
-			GF.logLevel=2
-		if arg == "-info":
-			GF.logLevel=1
-		if arg == "-list" or arg == "-l":
-			getRunningInstances()
-			cnt=0
-			for node in GF.nodes:
-				if node.running() is True:
-					cnt+=1
-				node.desc()
-			GF.log("There are a totoal of "+str(cnt)+" instances running.",0)
-			sys.exit()
-		if arg == "-listblock" or arg == "-lb":
-			getRunningInstances()
-			cnt=0
-			for node in GF.nodes:
-				if node.running() is True:
-					cnt+=1
-				node.desc_detail()
-			GF.log("There are a totoal of "+str(cnt)+" instances running.",0)
-			sys.exit()
-		if arg == "-listspots" or arg == "-ls":
-			getSpotRequests()
-			runcnt=0
-			ocnt=0
-			for node in GF.reqests:
-				if node.status == "active":
-					runcnt+=1
-				if node.status == "open":
-					ocnt+=1
-				node.desc()
-			GF.log("There are a totoal of "+str(runcnt)+" active and "+str(ocnt)+" waiting to launch",0)
-			sys.exit()
-		if arg == "-launch" and len(sys.argv) >= argc+2:
-			try:
-				n=int(sys.argv[argc+1])
-				if n > 0:
-					if GF.confirmQuestion("This will create "+str(n)+" instance(s). \nAre you sure you want to continue?") is False:
-						sys.exit()
-					print "Launching "+str(n)+" instances"
-					launchCluster(ami, size, key, maxPrice, n)
-				else:
-					print "Please specify positive number"
-				
-			except Exception as x:
-				print "Please specify number after -launch"
-				print x, sys.argv[argc+1]
-			sys.exit()
-		if arg == "-shutdown" or arg == "-killall":
-			# ask user for confirm
-			if GF.confirmQuestion("!!This will TERMINATE all running instances!! \nAre you sure you want to continue?") is False:
-				sys.exit()
-			getRunningInstances()
-			if len(GF.nodes)==0:
-				print "There are currently no nodes to kill"
-			for n in GF.nodes:
-				n.kill()
-		if arg == "-kill":
-			# ask user for confirm
-			foundinst=False
-			getRunningInstances()
-			if len(sys.argv) >= argc+2:
-				var=sys.argv[argc+1].strip()
-			else:
-				var = raw_input("Which host would you like to deploy?: ").strip()
-
-			for n in GF.nodes:
-				if n.instName==var:
-					foundinst=True
-			if foundinst is False:
-				print "There is currently no running instance by the ID: "+var
-			else:
-				if GF.confirmQuestion("!!This will kill the instance: "+var+"!\nAre you sure you want to continue?") is False:
-					sys.exit()
-				for n in GF.nodes:
-					if n.instName==var:
-						n.kill()
-		if arg == "-deploy":
-			# ask user for confirm
-			foundinst=False
-			getRunningInstances()
-			if len(sys.argv) >= argc+2:
-				var=sys.argv[argc+1].strip()
-			else:                       
-				var = raw_input("Which host would you like to deploy?: ").strip()
-			
-			for n in GF.nodes:
-				if n.instName==var and n.status=='running':
-					foundinst=True
-			if foundinst is False:
-				print "There is currently no running instance by the ID: "+var
-			else:
-				if GF.confirmQuestion("!!This will deploy on the instance: "+var+"!\nAre you sure you want to continue?") is False:
-					sys.exit()
-				if rebuildBundle is True:
-					print "Building Bundle..."
-					buildBundle(payload, payloadDir)
-				for n in GF.nodes:
-					if n.instName==var:
-						n.deploy(payload,sshKey,True)
-		if arg == "-monitor":
-			monitor(10,10)
-	'''
 	#ec2-describe-images -a | grep ami-06ad526f
 	#getRunningInstances()
 	#launchCluster("ami-06ad526f", "t1.micro", "id_rsa", .01, 10)
