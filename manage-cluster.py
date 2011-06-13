@@ -78,7 +78,30 @@ def launchMaster(ami, inst_size, keyName):
 	except Exception as x:
 		print x, "\n", res
 		sys.exit()
-	
+
+def saveState():
+	fname="./nodeDB"
+	FILE = open(fname,"w")
+	for n in GF.nodes:
+		FILE.write(str(n)+"\n")
+	FILE.close()
+
+def loadState():
+	try:
+		fname="./nodeDB"
+		FILE = open(fname,"r")
+		while FILE:
+			line = FILE.readline().strip().split(",")
+			if len(line)<=1:
+				break
+			GF.nodes.append(CLnode.CLnode(*line))
+			#line[0],line[1],line[2],line[3],line[4],line[5],line[6],line[7],line[8],line[9]
+		FILE.close()
+	except IOError:
+		print "warning, nodeDB does not exists yet"
+	except Exception as x:
+		print x, "\n", res
+		sys.exit()
 
 def getRunningInstances():
 	nodes = []
@@ -90,7 +113,7 @@ def getRunningInstances():
 		for line in res.split("\n"):
 			if line.find("INSTANCE")>=0:
 				inst=line.split("\t")
-				nodes.append(CLnode.CLnode(inst[1],inst[1],inst[5],inst[2],inst[6],inst[9],inst[10],inst[0],inst[3]))
+				nodes.append(CLnode.CLnode(inst[1],inst[1],inst[5],inst[2],inst[6],inst[9],inst[10],inst[0],inst[3],'',inst[22]))
 	except Exception as x:
 		print x, "\n", res
 		sys.exit()
@@ -106,7 +129,8 @@ def getSpotRequests():
 		for line in res.split("\n"):
 			if line.find("INSTANCE")>=0:
 				inst=line.split("\t")
-				GF.reqests.append(CLnode.CLnode(inst[1],inst[1],inst[5],'','','',inst[6],inst[0]))
+				GF.reqests.append(CLnode.CLnode(inst[1],inst[1],inst[5],'','','',inst[6],inst[0],''))
+				GF.nodes.append(CLnode.CLnode('','slave',inst[5],'','','',inst[6],inst[0],'','',inst[1]))
 	except Exception as x:
 		print x, "\n", res
 		sys.exit()
@@ -184,6 +208,7 @@ if __name__ == "__main__":
 
 	output = None
         verbose = False
+        loadState()
         for o, a in opts:
 		if o in ("-d", "--debug"): 
 			GF.logLevel=2
@@ -196,7 +221,8 @@ if __name__ == "__main__":
 				if node.running() is True:
 					cnt+=1
 				node.desc()
-			GF.log("There are a totoal of "+str(cnt)+" instances running.",0)
+			GF.log("There are a total of "+str(cnt)+" instances running.",0)
+			saveState()
 			sys.exit()  
 		elif o in ("--listblock"):
 			getRunningInstances()
@@ -206,6 +232,7 @@ if __name__ == "__main__":
 					cnt+=1
 				node.desc_detail()
 			GF.log("There are a totoal of "+str(cnt)+" instances running.",0)
+			saveState()
 			sys.exit()
 		elif o in ("--listspots"):
 			getSpotRequests()
@@ -217,7 +244,8 @@ if __name__ == "__main__":
 				if node.status == "open":
 					ocnt+=1
 				node.desc()
-			GF.log("There are a totoal of "+str(runcnt)+" active and "+str(ocnt)+" waiting to launch",0)
+			GF.log("There are a total of "+str(runcnt)+" active and "+str(ocnt)+" waiting to launch",0)
+			saveState()
 			sys.exit()
 		elif o in ("--master"):
 			withlaunch=False
@@ -228,6 +256,7 @@ if __name__ == "__main__":
 				if GF.confirmQuestion("This will create a master node of size "+a2+" \nAre you sure you want to continue?") is False:
 							sys.exit()
 				launchMaster(ami,a,key)
+			saveState()
 		elif o in ("--launch"):
 			#TODO: integrate MASTER
 			for o2, a2 in opts:
@@ -235,6 +264,7 @@ if __name__ == "__main__":
 					if GF.confirmQuestion("This will create a master node of size "+a2+" \nAre you sure you want to continue?") is False:
 							sys.exit()
 					launchMaster(ami,a2,key)
+			saveState() #save incase something fails
 			if  len(a.split(',')) == 2:
 				cnt=a.split(',')[0]
 				size=a.split(',')[1]
@@ -251,6 +281,7 @@ if __name__ == "__main__":
 				except Exception as x:
 					print "Please specify number after -launch"
 					print x, sys.argv[argc+1]
+				saveState()
 				sys.exit()
 			else:
 				print "Please specify in the following fashion --launch=<N>,<inst size>"
@@ -263,6 +294,7 @@ if __name__ == "__main__":
 				print "There are currently no nodes to kill"
 			for n in GF.nodes:
 				n.kill()
+			saveState()
 		elif o in ("--kill"):
 			foundinst=False
 			getRunningInstances()
@@ -282,6 +314,7 @@ if __name__ == "__main__":
 				for n in GF.nodes:
 					if n.instName==var:
 						n.kill()
+			saveState()
 		elif o in ("--deploy"):
 			# ask user for confirm
 			foundinst=False
@@ -305,8 +338,10 @@ if __name__ == "__main__":
 				for n in GF.nodes:
 					if n.instName==var:
 						n.deploy(payload,sshKey,True)
+			saveState()
 		else:
 			assert False, "unhandled option"
+		
 			
 	#ec2-describe-images -a | grep ami-06ad526f
 	#getRunningInstances()

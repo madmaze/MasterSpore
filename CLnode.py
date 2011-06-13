@@ -14,7 +14,7 @@ class CLnode:
 	url=''
 	master=False
 	
-	def __init__(self, instID='',instName='',status='',ami='',key='',size='',date='',ntype='',url='',master=False):
+	def __init__(self, instID='',instName='',status='',ami='',key='',size='',date='',ntype='',url='',master=False,sir=''):
 		self.instID=instID
 		self.instName=instName
 		self.status=status
@@ -25,6 +25,7 @@ class CLnode:
 		self.ntype=ntype
 		self.url=url
 		self.master=master
+		self.sir=sir
 	
 	def kill(self):
 		if self.status!="running":
@@ -34,13 +35,17 @@ class CLnode:
 			res=''
 			res = GF.run("ec2-terminate-instances "+self.instID)
 			print res
+			self.status='terminated'
 		except Exception as x:
 			print x, "\n", res
 			return -1
 	
 	def desc(self):
-		print self.ntype,self.master,self.instID,self.instName,self.status,self.url,self.ami,self.key,self.size,self.date
+		print self.ntype,self.master,self.instID,self.instName,self.status,self.url,self.ami,self.key,self.size,self.date,self.sir
 
+	def __repr__(self):
+		return self.instID+","+self.instName+","+self.status+","+self.ami+","+self.key+","+self.size+","+self.date+","+self.ntype+","+self.url+","+str(self.master)+","+self.sir
+	
 	def desc_detail(self):
 		print "Instance Type:\t\t"+self.ntype
 		print "Is Master Node:\t\t"+str(self.master)
@@ -52,6 +57,7 @@ class CLnode:
 		print "Keypair:\t\t"+self.key
 		print "Instance Size:\t\t"+self.size
 		print "Date/Time started:\t"+self.date
+		print "Spot Inst Request:\t"+self.sir
 		print "===="
 
 		
@@ -66,7 +72,7 @@ class CLnode:
 			return False
 	
 	def copy(self):
-		return CLnode(self.instID,self.instName,self.status,self.ami,self.key,self.size,self.date,self.ntype,self.url,self.master)
+		return CLnode(self.instID,self.instName,self.status,self.ami,self.key,self.size,self.date,self.ntype,self.url,self.master,self.sir)
 		
 	def deploy(self,payload,sshKey,launch=False):
 		# check for master/slave
