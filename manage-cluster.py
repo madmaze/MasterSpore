@@ -220,7 +220,7 @@ if __name__ == "__main__":
 	rebuildBundle=True
 	payload='./bundle.tar'
 	payloadDir='./payload'
-	print "Cluster manager v0.1";
+	print "Cluster manager v0.2";
 	argc=0
 	try:
 		opts, args = getopt.getopt(sys.argv[1:], "dil", ["debug", "info", "list", "listspots", "listblock", 
