@@ -28,20 +28,33 @@ def curSpotCost(inst_size):
 
 def startNodes(ami, inst_size, keyName, maxPrice, nodecnt):
 	GF.log("... starting " + str(nodecnt) + " node(s)", 1);
+	local=[]
 	try:
 		#res = GF.run("ec2-request-spot-instances " + ami + " -p " + maxPrice)
 		
 		res = GF.run("ec2-request-spot-instances " + ami + " -p " + str(maxPrice) + " -instance-type " + inst_size + " -n " + str(nodecnt) + " --type one-time" + " --key " + keyName)
+		lines=res.split("\n")
+		for i in range(0,len(res.split("\n"))):
+			line=lines[i]
+			print "res: ",i,line
+			if line.find("SPOTINSTANCEREQUEST")>=0:
+				inst=line.split("\t")
+				local.append(CLnode.CLnode( ''    ,'slave' ,inst[5], ''  ,  '' ,  ''  ,inst[6] ,inst[0],  ''   ,False,inst[1],False))
+				                             #instID,instName,status , ami , key , size ,  date  , ntype ,  url  ,master,sir,deployed):
+				#GF.nodes.append(CLnode.CLnode(inst[1],'slave',inst[5],inst[2],inst[6],inst[9],inst[10],inst[0],inst[3],'',inst[22]))
+
 		if res.find("timeout")>=0:
 			print "TIMEOUT: ", res
 			sys.exit()
 		if res.find("InvalidAMIID")>=0:
 			print "INVALID AMI ID: ", res
 			sys.exit()
-		print res
+		
+		#print res
 	except Exception as x:
 		print x, "\n", res
 		sys.exit()
+	GF.addNewNodes(local)
 
 def launchCluster(ami, inst_size, keyName, maxPrice, nodes):
 	GF.log("Maximum Price: "+str(maxPrice), 1);
@@ -58,6 +71,7 @@ def launchCluster(ami, inst_size, keyName, maxPrice, nodes):
 
 def launchMaster(ami, inst_size, keyName):
 	GF.log("Launching Master node..",1)
+	local=[]
 	try:
 		res = GF.run("ec2-run-instances " + ami + " -k " + keyName + " -t " + size)
 		if res.find("InvalidAMIID")>=0:
@@ -69,12 +83,14 @@ def launchMaster(ami, inst_size, keyName):
 		master=CLnode.CLnode()
 		for l in lines:
 			inst=l.split("\t")
-			for n in l.split("\t"):
-				print i,n
-				i+=1
+			#for n in l.split("\t"):
+			#	print i,n
+			#	i+=1
 			if inst[0]=="INSTANCE":
 				master = CLnode.CLnode(inst[1],"MASTER",inst[5],inst[2],inst[6],inst[9],inst[10],inst[0],'',True)
-		master.desc_detail()	
+		master.desc_detail()
+		local.append(master)
+		GF.addNewNodes(local)
 	except Exception as x:
 		print x, "\n", res
 		sys.exit()
@@ -87,6 +103,8 @@ def saveState():
 	FILE.close()
 
 def loadState():
+	getRunningInstances()
+	nodes=[]
 	try:
 		fname="./nodeDB"
 		FILE = open(fname,"r")
@@ -94,9 +112,10 @@ def loadState():
 			line = FILE.readline().strip().split(",")
 			if len(line)<=1:
 				break
-			GF.nodes.append(CLnode.CLnode(*line))
+			nodes.append(CLnode.CLnode(*line))
 			#line[0],line[1],line[2],line[3],line[4],line[5],line[6],line[7],line[8],line[9]
 		FILE.close()
+		GF.addNewNodes(nodes)
 	except IOError:
 		print "warning, nodeDB does not exists yet"
 	except Exception as x:
@@ -104,7 +123,7 @@ def loadState():
 		sys.exit()
 
 def getRunningInstances():
-	nodes = []
+	#nodes = []
 	try:
 		res = GF.run("ec2-describe-instances")
 		if res.find("timeout")>=0:
@@ -113,14 +132,19 @@ def getRunningInstances():
 		for line in res.split("\n"):
 			if line.find("INSTANCE")>=0:
 				inst=line.split("\t")
-				nodes.append(CLnode.CLnode(inst[1],inst[1],inst[5],inst[2],inst[6],inst[9],inst[10],inst[0],inst[3],'',inst[22]))
+				if inst[5] != "terminated":
+					GF.nodes.append(CLnode.CLnode(inst[1],inst[1],inst[5],inst[2],inst[6],inst[9],inst[10],inst[0],inst[3],'',inst[22]))
+				else:
+					GF.log("found terminated"+line,2)
+					#GF.nodes.append(CLnode.CLnode(inst[1],inst[1],inst[5],inst[2],inst[6],inst[9],inst[10],inst[0],inst[3],'',inst[22]))
 	except Exception as x:
 		print x, "\n", res
 		sys.exit()
-	GF.addNewNodes(nodes)
+	#GF.addNewNodes(nodes)
 	
 	#ec2-describe-spot-instance-requests
 def getSpotRequests():
+	# TODO: make sure it makes new nodes, but doesnt ever write
 	try:
 		res = GF.run("ec2-describe-spot-instance-requests")
 		if res.find("timeout")>=0:
@@ -200,7 +224,7 @@ if __name__ == "__main__":
 	argc=0
 	try:
 		opts, args = getopt.getopt(sys.argv[1:], "dil", ["debug", "info", "list", "listspots", "listblock", 
-		"launch=", "shutdown", "killall", "kill=","deploy=","master="])
+		"launch=", "shutdown", "deployall", "killall", "kill=","deploy=","master="])
         except getopt.GetoptError, err:
 		# print help information and exit:
 		print str(err) # will print something like "option -a not recognized"
@@ -215,7 +239,7 @@ if __name__ == "__main__":
 		elif o in ("-i", "--info"):
 			GF.logLevel=1
 		elif o in ("-l", "--list"):
-			getRunningInstances()
+			#getRunningInstances()
 			cnt=0
 			for node in GF.nodes:
 				if node.running() is True:
@@ -225,7 +249,7 @@ if __name__ == "__main__":
 			saveState()
 			sys.exit()  
 		elif o in ("--listblock"):
-			getRunningInstances()
+			#getRunningInstances()
 			cnt=0
 			for node in GF.nodes:
 				if node.running() is True:
@@ -289,7 +313,7 @@ if __name__ == "__main__":
 			# ask user for confirm
 			if GF.confirmQuestion("!!This will TERMINATE all running instances!! \nAre you sure you want to continue?") is False:
 				sys.exit()
-			getRunningInstances()
+			#getRunningInstances()
 			if len(GF.nodes)==0:
 				print "There are currently no nodes to kill"
 			for n in GF.nodes:
@@ -297,7 +321,7 @@ if __name__ == "__main__":
 			saveState()
 		elif o in ("--kill"):
 			foundinst=False
-			getRunningInstances()
+			#getRunningInstances()
 			if len(a) >= 6:
 				var=a .strip()
 			else:
@@ -318,7 +342,7 @@ if __name__ == "__main__":
 		elif o in ("--deploy"):
 			# ask user for confirm
 			foundinst=False
-			getRunningInstances()
+			#getRunningInstances()
 			if len(a) >= 6:
 				var=a .strip()
 			else:                       
@@ -338,6 +362,17 @@ if __name__ == "__main__":
 				for n in GF.nodes:
 					if n.instName==var:
 						n.deploy(payload,sshKey,True)
+			saveState()
+		elif o in ("--deployall"):
+			
+			if GF.confirmQuestion("!!This will deploy all Instances!\nAre you sure you want to continue?") is False:
+				sys.exit()
+			if rebuildBundle is True:
+				print "Building Bundle..."
+				buildBundle(payload, payloadDir)
+			for n in GF.nodes:
+				if n.status=='running':
+					n.deploy(payload,sshKey,True)
 			saveState()
 		else:
 			assert False, "unhandled option"

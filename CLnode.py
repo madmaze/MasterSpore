@@ -13,8 +13,10 @@ class CLnode:
 	ntype=''
 	url=''
 	master=False
+	sir=''
+	deployed=False
 	
-	def __init__(self, instID='',instName='',status='',ami='',key='',size='',date='',ntype='',url='',master=False,sir=''):
+	def __init__(self, instID='',instName='',status='',ami='',key='',size='',date='',ntype='',url='',master=False,sir='',deployed=False):
 		self.instID=instID
 		self.instName=instName
 		self.status=status
@@ -24,8 +26,9 @@ class CLnode:
 		self.date=date
 		self.ntype=ntype
 		self.url=url
-		self.master=master
+		self.master=GF.str2bool(master)
 		self.sir=sir
+		self.deployed=GF.str2bool(deployed)
 	
 	def kill(self):
 		if self.status!="running":
@@ -40,15 +43,17 @@ class CLnode:
 			print x, "\n", res
 			return -1
 	
+	
 	def desc(self):
-		print self.ntype,self.master,self.instID,self.instName,self.status,self.url,self.ami,self.key,self.size,self.date,self.sir
+		print self.ntype,self.master,self.instID,self.instName,self.status,self.url,self.ami,self.key,self.size,self.date,self.sir,self.deployed
 
 	def __repr__(self):
-		return self.instID+","+self.instName+","+self.status+","+self.ami+","+self.key+","+self.size+","+self.date+","+self.ntype+","+self.url+","+str(self.master)+","+self.sir
+		return self.instID+","+self.instName+","+self.status+","+self.ami+","+self.key+","+self.size+","+self.date+","+self.ntype+","+self.url+","+str(self.master)+","+self.sir+","+str(self.deployed)
 	
 	def desc_detail(self):
 		print "Instance Type:\t\t"+self.ntype
 		print "Is Master Node:\t\t"+str(self.master)
+		print "Has been deployed:\t"+str(self.deployed)
 		print "Instance ID:\t\t"+self.instID
 		print "Instance Name:\t\t"+self.instName
 		print "Status:\t\t\t"+self.status
@@ -72,33 +77,51 @@ class CLnode:
 			return False
 	
 	def copy(self):
-		return CLnode(self.instID,self.instName,self.status,self.ami,self.key,self.size,self.date,self.ntype,self.url,self.master,self.sir)
+		return CLnode(self.instID,self.instName,self.status,self.ami,self.key,self.size,self.date,self.ntype,self.url,self.master,self.sir,self.deployed)
 		
 	def deploy(self,payload,sshKey,launch=False):
 		# check for master/slave
 		# COPY payload
-		try:
-			res=GF.run("scp -i "+sshKey+" "+payload+"  ubuntu@"+self.url+":~/")
-			print "scp -i "+sshKey+" "+payload+"  ubuntu@"+self.url+":~/"
-		except Exception as x:
-			print x, "\n", res
-			return -1
+		# TODO: set deployed
+		# TODO: error handeling
+		# TODO: Double Check setup
+		if self.master is True:
+			print "its true"
+		elif self.master is False:
+			print "its false"
+		else:
+			print "neither", type(self.master)
 		
-		# EXTRACT payload
-		try:
-			res=GF.run("ssh -i "+sshKey+" ubuntu@"+self.url+" 'tar xvf ~/bundle.tar;'")
-			print "ssh -i "+sshKey+" ubuntu@"+self.url+" 'tar xvf ~/bundle.tar;'"
-		except Exception as x:
-			print x, "\n", res
-			return -1
 		
-		if launch is True:
-			# LAUNCH Payload
+		
+		
+		if self.master is False:
 			try:
-				res=GF.run("ssh -i "+sshKey+" ubuntu@"+self.url+" 'python ~/payload/setup.py'")
-				print "ssh -i "+sshKey+" ubuntu@"+self.url+" 'python ~/payload/setup.py'"
+				res=GF.run("scp -o StrictHostKeyChecking=no -i "+sshKey+" "+payload+"  ubuntu@"+self.url+":~/")
+				print "scp -o StrictHostKeyChecking=no -i "+sshKey+" "+payload+"  ubuntu@"+self.url+":~/"
 			except Exception as x:
 				print x, "\n", res
 				return -1
+			
+			# EXTRACT payload
+			try:
+				res=GF.run("ssh -o StrictHostKeyChecking=no -i "+sshKey+" ubuntu@"+self.url+" 'tar xvf ~/bundle.tar;'")
+				print "ssh -o StrictHostKeyChecking=no -i "+sshKey+" ubuntu@"+self.url+" 'tar xvf ~/bundle.tar;'"
+			except Exception as x:
+				print x, "\n", res
+				return -1
+			
+			if launch is True:
+				# LAUNCH Payload
+				try:
+					res=GF.run("ssh -o StrictHostKeyChecking=no -i "+sshKey+" ubuntu@"+self.url+" 'python ~/payload/setup.py'")
+					print "ssh -o StrictHostKeyChecking=no -i "+sshKey+" ubuntu@"+self.url+" 'python ~/payload/setup.py'"
+					self.deployed = True
+				except Exception as x:
+					print x, "\n", res
+					return -1
+		else:
+			print "Master node: No need to deploy!"
+			print "ismaster? ",self.master
 			
 			
