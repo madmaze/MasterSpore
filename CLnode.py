@@ -80,20 +80,10 @@ class CLnode:
 		return CLnode(self.instID,self.instName,self.status,self.ami,self.key,self.size,self.date,self.ntype,self.url,self.master,self.sir,self.deployed)
 		
 	def deploy(self,payload,sshKey,launch=False):
-		# check for master/slave
-		# COPY payload
-		# TODO: set deployed
 		# TODO: error handeling
-		# TODO: Double Check setup
-		if self.master is True:
-			print "its true"
-		elif self.master is False:
-			print "its false"
-		else:
-			print "neither", type(self.master)
-		
-		
-		
+		print "\n============================================"
+		print "Deploing",self.instID,"/",self.instName
+		print "====="
 		
 		if self.master is False:
 			try:
@@ -122,6 +112,5 @@ class CLnode:
 					return -1
 		else:
 			print "Master node: No need to deploy!"
-			print "ismaster? ",self.master
 			
 			
