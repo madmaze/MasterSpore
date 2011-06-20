@@ -38,11 +38,6 @@ def addNewNodes(new):
 #		if n.status == "terminated":
 #			print "will be dropped: terminated ",str(n)
 		if exists>=0:
-			#nodes[exists].status=n.status
-			#nodes[exists].url=n.url
-			#nodes[exists].date=n.date
-			#nodes[exists].instID=n.instID
-			#nodes[exists].ntype=n.ntype
 			nodes[exists].instName=n.instName
 			nodes[exists].deployed=n.deployed
 			nodes[exists].master=n.master
