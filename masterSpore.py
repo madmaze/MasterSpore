@@ -1,5 +1,23 @@
 #!/usr/bin/python
-
+########################################################
+# masterSpore.py - MasterSpore
+# This is a quick python tool that lets you launch and control a
+# cluser of machines on AMAZON's EC2
+#
+# This tool allows you to:
+# 1. launch a cluster consisting of
+#    1 Master node and <N> slave nodes
+#    The master node is requested as a normal instance for stability.
+#    The slave nodes are launched as SpotInstances at a current market bid.
+# 2. deploy a package/bundle of code/scripts/executables on each slave node
+# 3. deploy/setup the master separately from the slaves <TODO>
+# 4. collect logs from a central location on each of the slave nodes <TODO>
+# 5. monitor/kill all nodes
+#
+# All code associate with this project is available under GPL v3
+# Please find your copy here http://www.gnu.org/licenses/gpl-3.0.txt
+# Copyright 2011 Matthias Lee
+########################################################
 import os
 import sys
 import time
@@ -7,7 +25,7 @@ import CLnode
 import GF
 import getopt
 		
-
+# Resolves current or most recent SpotInstance price for the specified inst_size
 def curSpotCost(inst_size):
 	lt = time.localtime(time.time())	
 	curdate = str(lt[0])+"-"+str(lt[1])+"-"+str(lt[2])+"T"+str(lt[3])+":"+str(lt[4])+":"+str(lt[5])+":"+str(lt[6])+"-0000"
@@ -26,12 +44,12 @@ def curSpotCost(inst_size):
 	GF.log("Current Instance Cost: "+str(cost), 1);
 	return cost
 
+# Sarts <nodecnt> nodes with the given parameters
+# does simple error checking to make sure nodes start
 def startNodes(ami, inst_size, keyName, maxPrice, nodecnt):
 	GF.log("... starting " + str(nodecnt) + " node(s)", 1);
 	local=[]
-	try:
-		#res = GF.run("ec2-request-spot-instances " + ami + " -p " + maxPrice)
-		
+	try:		
 		res = GF.run("ec2-request-spot-instances " + ami + " -p " + str(maxPrice) + " -instance-type " + inst_size + " -n " + str(nodecnt) + " --type one-time" + " --key " + keyName)
 		lines=res.split("\n")
 		for i in range(0,len(res.split("\n"))):
@@ -40,8 +58,7 @@ def startNodes(ami, inst_size, keyName, maxPrice, nodecnt):
 			if line.find("SPOTINSTANCEREQUEST")>=0:
 				inst=line.split("\t")
 				local.append(CLnode.CLnode( ''    ,'slave' ,inst[5], ''  ,  '' ,  ''  ,inst[6] ,inst[0],  ''   ,False,inst[1],False))
-				                             #instID,instName,status , ami , key , size ,  date  , ntype ,  url  ,master,sir,deployed):
-				#GF.nodes.append(CLnode.CLnode(inst[1],'slave',inst[5],inst[2],inst[6],inst[9],inst[10],inst[0],inst[3],'',inst[22]))
+				                           #instID,instName,status , ami , key , size ,  date  , ntype ,  url  ,master,sir,deployed):
 
 		if res.find("timeout")>=0:
 			print "TIMEOUT: ", res
@@ -50,12 +67,13 @@ def startNodes(ami, inst_size, keyName, maxPrice, nodecnt):
 			print "INVALID AMI ID: ", res
 			sys.exit()
 		
-		#print res
 	except Exception as x:
 		print x, "\n", res
 		sys.exit()
 	GF.addNewNodes(local)
 
+# Gets the current spot price and makes sure that your bid is above that price
+# then calls startNodes() to get the action moving
 def launchCluster(ami, inst_size, keyName, maxPrice, nodes):
 	GF.log("Maximum Price: "+str(maxPrice), 1);
 	curPrice=curSpotCost(inst_size)
@@ -66,9 +84,9 @@ def launchCluster(ami, inst_size, keyName, maxPrice, nodes):
 		print "Error: Current spot price too high."
 		sys.exit(-2)
 	GF.log("Launching "+str(nodes)+" nodes.", 1);
-	#for n in range (0,nodes):
 	startNodes(ami, inst_size, keyName, maxPrice, nodes)
 
+# Launches the master node with the given parameters
 def launchMaster(ami, inst_size, keyName):
 	GF.log("Launching Master node..",1)
 	local=[]
@@ -83,9 +101,6 @@ def launchMaster(ami, inst_size, keyName):
 		master=CLnode.CLnode()
 		for l in lines:
 			inst=l.split("\t")
-			#for n in l.split("\t"):
-			#	print i,n
-			#	i+=1
 			if inst[0]=="INSTANCE":
 				master = CLnode.CLnode(inst[1],"MASTER",inst[5],inst[2],inst[6],inst[9],inst[10],inst[0],'',True)
 		master.desc_detail()
@@ -95,6 +110,8 @@ def launchMaster(ami, inst_size, keyName):
 		print x, "\n", res
 		sys.exit()
 
+# Saves all current nodes/instances to a file which will be parsed
+# on next startup to retain knowledge of the nodes metadata
 def saveState():
 	fname="./nodeDB"
 	FILE = open(fname,"w")
@@ -102,6 +119,8 @@ def saveState():
 		FILE.write(str(n)+"\n")
 	FILE.close()
 
+# Loads a dictionary file to scrape up meta-data associated with instances
+# EX: is a node a Master or slave? has it been deployed?
 def loadState():
 	getRunningInstances()
 	nodes=[]
@@ -122,8 +141,8 @@ def loadState():
 		print x, "\n", res
 		sys.exit()
 
+# Gets a list of currently and recently run instances
 def getRunningInstances():
-	#nodes = []
 	try:
 		res = GF.run("ec2-describe-instances")
 		if res.find("timeout")>=0:
@@ -136,15 +155,12 @@ def getRunningInstances():
 					GF.nodes.append(CLnode.CLnode(inst[1],inst[1],inst[5],inst[2],inst[6],inst[9],inst[10],inst[0],inst[3],'',inst[22]))
 				else:
 					GF.log("found terminated"+line,2)
-					#GF.nodes.append(CLnode.CLnode(inst[1],inst[1],inst[5],inst[2],inst[6],inst[9],inst[10],inst[0],inst[3],'',inst[22]))
 	except Exception as x:
 		print x, "\n", res
 		sys.exit()
-	#GF.addNewNodes(nodes)
 	
-	#ec2-describe-spot-instance-requests
+# Gets the current list of SpotRequests and adds then to GF.requests
 def getSpotRequests():
-	# TODO: make sure it makes new nodes, but doesnt ever write
 	try:
 		res = GF.run("ec2-describe-spot-instance-requests")
 		if res.find("timeout")>=0:
@@ -154,11 +170,11 @@ def getSpotRequests():
 			if line.find("INSTANCE")>=0:
 				inst=line.split("\t")
 				GF.reqests.append(CLnode.CLnode(inst[1],inst[1],inst[5],'','','',inst[6],inst[0],''))
-				GF.nodes.append(CLnode.CLnode('','slave',inst[5],'','','',inst[6],inst[0],'','',inst[1]))
 	except Exception as x:
 		print x, "\n", res
 		sys.exit()
-		
+
+# Tars up the payload directory
 def buildBundle(payload, payloadDir):
 	try:
 		#RM old bundle
@@ -171,6 +187,8 @@ def buildBundle(payload, payloadDir):
 		print x, "\n", res
 		sys.exit()
 
+# Currently not in use, Future purpose is to track monitor
+# until all nodes have launched, then deploy
 def monitor(n, timeout):
 	allStarted=True
 	
@@ -239,7 +257,6 @@ if __name__ == "__main__":
 		elif o in ("-i", "--info"):
 			GF.logLevel=1
 		elif o in ("-l", "--list"):
-			#getRunningInstances()
 			cnt=0
 			for node in GF.nodes:
 				if node.running() is True:
@@ -249,7 +266,6 @@ if __name__ == "__main__":
 			saveState()
 			sys.exit()  
 		elif o in ("--listblock"):
-			#getRunningInstances()
 			cnt=0
 			for node in GF.nodes:
 				if node.running() is True:
@@ -282,7 +298,6 @@ if __name__ == "__main__":
 				launchMaster(ami,a,key)
 			saveState()
 		elif o in ("--launch"):
-			#TODO: integrate MASTER
 			for o2, a2 in opts:
 				if o2 in ("--master"):
 					if GF.confirmQuestion("This will create a master node of size "+a2+" \nAre you sure you want to continue?") is False:
@@ -313,7 +328,6 @@ if __name__ == "__main__":
 			# ask user for confirm
 			if GF.confirmQuestion("!!This will TERMINATE all running instances!! \nAre you sure you want to continue?") is False:
 				sys.exit()
-			#getRunningInstances()
 			if len(GF.nodes)==0:
 				print "There are currently no nodes to kill"
 			for n in GF.nodes:
@@ -321,7 +335,6 @@ if __name__ == "__main__":
 			saveState()
 		elif o in ("--kill"):
 			foundinst=False
-			#getRunningInstances()
 			if len(a) >= 6:
 				var=a .strip()
 			else:
@@ -342,7 +355,6 @@ if __name__ == "__main__":
 		elif o in ("--deploy"):
 			# ask user for confirm
 			foundinst=False
-			#getRunningInstances()
 			if len(a) >= 6:
 				var=a .strip()
 			else:                       
@@ -376,8 +388,3 @@ if __name__ == "__main__":
 			saveState()
 		else:
 			assert False, "unhandled option"
-		
-			
-	#ec2-describe-images -a | grep ami-06ad526f
-	#getRunningInstances()
-	#launchCluster("ami-06ad526f", "t1.micro", "id_rsa", .01, 10)

@@ -1,0 +1,62 @@
+MasterSpore v0.2
+
+This is a python-based cloud-cluster launch/control tool for AMAZON's EC2
+
+
+ This tool allows you to:
+ 1. launch a cluster consisting of
+    A Master node and <N> slave nodes
+    The master node is requested as a normal instance for stability.
+    The slave nodes are launched as SpotInstances at a current market bid.
+ 2. deploy a package/bundle of code/scripts/executables on each slave node
+ 3. deploy/setup the master separately from the slaves <TODO>
+ 4. collect logs from a central location on each of the slave nodes <TODO>
+ 5. monitor/kill all nodes
+
+
+Getting Started
+
+Run Requirements:
+	- *nix based OS, tested on Ubuntu & Debian
+	- Python & git
+	- Installed and configured amazon-ec2-commandline
+
+To use MasterSpore just clone the repo
+	Clone the MasterSpore Repo:
+	git clone git://github.com/madmaze/MasterSpore.git
+	
+	Read though the code or the --help
+	python manage-cluster.py --help
+
+Installing and configuring amazon's ec2 CLI tools
+	- ec2-api-tools available at: http://aws.amazon.com/developertools/351
+	- Great Reference and Getting started:
+		http://paulstamatiou.com/how-to-getting-started-with-amazon-ec2
+
+		
+		
+		
+Changelog
+
+0.2
+- Initial release
+
+
+
+License:
+
+Copyright (c) 2011 Matthias Lee, matthias.a.lee@gmail.com
+Last edited: June 20th 2011
+
+This program is free software: you can redistribute it and/or modify 
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.

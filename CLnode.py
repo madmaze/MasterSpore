@@ -1,3 +1,6 @@
+##############
+# CLnode.py - ClusterNode object
+##############
 import os
 import sys
 import GF
@@ -16,6 +19,7 @@ class CLnode:
 	sir=''
 	deployed=False
 	
+	# Constructor
 	def __init__(self, instID='',instName='',status='',ami='',key='',size='',date='',ntype='',url='',master=False,sir='',deployed=False):
 		self.instID=instID
 		self.instName=instName
@@ -30,6 +34,7 @@ class CLnode:
 		self.sir=sir
 		self.deployed=GF.str2bool(deployed)
 	
+	# Kill the current instance 
 	def kill(self):
 		if self.status!="running":
 			print "Instance is not running, therefore will not shutdown"
@@ -43,13 +48,15 @@ class CLnode:
 			print x, "\n", res
 			return -1
 	
-	
+	# print all enclose data in row form 
 	def desc(self):
 		print self.ntype,self.master,self.instID,self.instName,self.status,self.url,self.ami,self.key,self.size,self.date,self.sir,self.deployed
 
+	# to string
 	def __repr__(self):
 		return self.instID+","+self.instName+","+self.status+","+self.ami+","+self.key+","+self.size+","+self.date+","+self.ntype+","+self.url+","+str(self.master)+","+self.sir+","+str(self.deployed)
 	
+	# print all enclosed data in a block with descriptions
 	def desc_detail(self):
 		print "Instance Type:\t\t"+self.ntype
 		print "Is Master Node:\t\t"+str(self.master)
@@ -66,19 +73,23 @@ class CLnode:
 		print "===="
 
 		
-	
+	# returns status, not really needed since elements are public
 	def status(self):
 		return self.status
 	
+	# returns boolean depending on status
 	def running(self):
 		if self.status=="running":
 			return True
 		else:
 			return False
 	
+	# returns a copy of the current object 
 	def copy(self):
 		return CLnode(self.instID,self.instName,self.status,self.ami,self.key,self.size,self.date,self.ntype,self.url,self.master,self.sir,self.deployed)
 		
+	# Deploys the node, by copying the bundle.tar to this instance
+	# Then extracts it and runs the setup script
 	def deploy(self,payload,sshKey,launch=False):
 		# TODO: error handeling
 		print "\n============================================"
@@ -112,5 +123,3 @@ class CLnode:
 					return -1
 		else:
 			print "Master node: No need to deploy!"
-			
-			
