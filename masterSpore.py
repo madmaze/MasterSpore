@@ -349,7 +349,7 @@ if __name__ == "__main__":
 				if GF.confirmQuestion("!!This will kill the instance: "+var+"!\nAre you sure you want to continue?") is False:
 					sys.exit()
 				for n in GF.nodes:
-					if n.instName==var:
+					if n.instID==var:
 						n.kill()
 			saveState()
 		elif o in ("--deploy"):
@@ -361,7 +361,7 @@ if __name__ == "__main__":
 				var = raw_input("Which host would you like to deploy?: ").strip()
 			
 			for n in GF.nodes:
-				if n.instName==var and n.status=='running':
+				if n.instID==var and n.status=='running':
 					foundinst=True
 			if foundinst is False:
 				print "There is currently no running instance by the ID: "+var
@@ -372,7 +372,7 @@ if __name__ == "__main__":
 					print "Building Bundle..."
 					buildBundle(payload, payloadDir)
 				for n in GF.nodes:
-					if n.instName==var:
+					if n.instID==var:
 						n.deploy(payload,sshKey,True)
 			saveState()
 		elif o in ("--deployall"):
