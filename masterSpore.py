@@ -234,7 +234,7 @@ if __name__ == "__main__":
 	size="t1.micro"
 	key="id_rsa"
 	maxPrice=.01
-	sshKey='/home/madmaze/.ec2/pkey'
+	sshKey='~/.ec2/pkey'
 	rebuildBundle=True
 	payload='./bundle.tar'
 	payloadDir='./payload'
@@ -341,7 +341,7 @@ if __name__ == "__main__":
 				var = raw_input("Which host would you like to deploy?: ").strip()
 
 			for n in GF.nodes:
-				if n.instName==var:
+				if n.instID==var:
 					foundinst=True
 			if foundinst is False:
 				print "There is currently no running instance by the ID: "+var
