@@ -241,7 +241,7 @@ if __name__ == "__main__":
 	print "Cluster manager v0.2";
 	argc=0
 	try:
-		opts, args = getopt.getopt(sys.argv[1:], "dil", ["debug", "info", "list", "listspots", "listblock", 
+		opts, args = getopt.getopt(sys.argv[1:], "dilh", ["help", "debug", "info", "list", "listspots", "listblock", 
 		"launch=", "shutdown", "deployall", "killall", "kill=","deploy=","master="])
         except getopt.GetoptError, err:
 		# print help information and exit:
@@ -386,5 +386,15 @@ if __name__ == "__main__":
 				if n.status=='running':
 					n.deploy(payload,sshKey,True)
 			saveState()
+		elif o in ("--help"):
+			print 	"Help:\n"
+			print	"./masterSporte.py --help - help menue"
+			print	"./masterSporte.py -d - enable debug output" 
+			print	"./masterSporte.py -l - List all entires"
+			print	"./masterSporte.py --killall - kills all nodes/instances currently associated with your account"
+			print	"./masterSporte.py --kill <inst-id> - kills a specific instance, use -l to find the inst-id"
+			print	"./masterSporte.py --master <inst-size> - this will create a master node/instance which will not be a spot instance"
+			print	"./masterSporte.py --launch <N>,<spot-size> - where N is the number of nodes/instances and spot-size is the spot-inst request size"
+			print	"\n\nSpot/Inst sizes: t1.micro, m1.small etc etc.."
 		else:
-			assert False, "unhandled option"
+			assert False, "unhandled option\n try: --help"
