@@ -237,12 +237,13 @@ if __name__ == "__main__":
 	sshKey='~/.ec2/pkey'
 	rebuildBundle=True
 	payload='./bundle.tar'
+	logsDir='./logs'
 	payloadDir='./payload'
 	print "Cluster manager v0.2";
 	argc=0
 	try:
 		opts, args = getopt.getopt(sys.argv[1:], "dilh", ["help", "debug", "info", "list", "listspots", "listblock", 
-		"launch=", "shutdown", "deployall", "killall", "kill=","deploy=","master="])
+		"launch=", "shutdown", "deployall","gatherlogs", "killall", "kill=","deploy=","master="])
         except getopt.GetoptError, err:
 		# print help information and exit:
 		print str(err) # will print something like "option -a not recognized"
@@ -385,6 +386,16 @@ if __name__ == "__main__":
 			for n in GF.nodes:
 				if n.status=='running':
 					n.deploy(payload,sshKey,True)
+			saveState()
+		elif o in ("--gatherlogs"):
+			lt = time.localtime(time.time())	
+			#should be ddmmyyyy-hhmmss AKA should not allow single digits in time
+			timestamp=str(lt[2])+str(lt[1])+str(lt[0])+"-"+str(lt[3])+":"+str(lt[4])+":"+str(lt[5])
+			if GF.confirmQuestion("!!This will gather up all logs from agents and master!\nAre you sure you want to continue?") is False:
+				sys.exit()
+			for n in GF.nodes:
+				if n.status=='running':
+					n.gather(logsDir+"/"+timestamp,sshKey)
 			saveState()
 		elif o in ("--help"):
 			print 	"Help:\n"

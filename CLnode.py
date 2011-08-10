@@ -92,6 +92,7 @@ class CLnode:
 	# Then extracts it and runs the setup script
 	def deploy(self,payload,sshKey,launch=False):
 		# TODO: error handeling
+		# remove SIG with ssh-keygen -f "/home/madmaze/.ssh/known_hosts" -R ec2-184-73-46-186.compute-1.amazonaws.com
 		print "\n============================================"
 		print "Deploing",self.instID,"/",self.instName
 		print "====="
@@ -123,3 +124,37 @@ class CLnode:
 					return -1
 		else:
 			print "Master node: No need to deploy!"
+	
+	def gather(self,logsDir,sshKey):
+		print "\n============================================"
+		print "Gathering logs: ",self.instID,"/",self.instName
+		print "====="
+		logsDir+='/'+self.instID+'-'+self.instName
+		
+		try:
+			res=GF.run("mkdir -p "+logsDir)
+			res=GF.run("scp -r -o StrictHostKeyChecking=no -i "+sshKey+" ubuntu@"+self.url+":/var/tmp/log "+logsDir)
+			print "scp -r -o StrictHostKeyChecking=no -i "+sshKey+" ubuntu@"+self.url+":/var/tmp/log "+logsDir
+		except Exception as x:
+			print x, "\n", res
+			return -1
+		
+		'''
+		# EXTRACT payload
+		try:
+			res=GF.run("ssh -o StrictHostKeyChecking=no -i "+sshKey+" ubuntu@"+self.url+" 'tar xvf ~/bundle.tar;'")
+			print "ssh -o StrictHostKeyChecking=no -i "+sshKey+" ubuntu@"+self.url+" 'tar xvf ~/bundle.tar;'"
+		except Exception as x:
+			print x, "\n", res
+			return -1
+		
+		if launch is True:
+			# LAUNCH Payload
+			try:
+				res=GF.run("ssh -o StrictHostKeyChecking=no -i "+sshKey+" ubuntu@"+self.url+" 'python ~/payload/setup.py'")
+				print "ssh -o StrictHostKeyChecking=no -i "+sshKey+" ubuntu@"+self.url+" 'python ~/payload/setup.py'"
+				self.deployed = True
+			except Exception as x:
+				print x, "\n", res
+				return -1
+		'''
