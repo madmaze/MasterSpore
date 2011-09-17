@@ -10,7 +10,7 @@ This is a python-based cloud-cluster launch/control tool for AMAZON's EC2
     The slave nodes are launched as SpotInstances at a current market bid.
  2. deploy a package/bundle of code/scripts/executables on each slave node
  3. deploy/setup the master separately from the slaves <TODO>
- 4. collect logs from a central location on each of the slave nodes <TODO>
+ 4. collect logs from a central location on each of the slave nodes
  5. monitor/kill all nodes
 
 
