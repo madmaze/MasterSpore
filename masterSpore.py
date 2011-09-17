@@ -243,7 +243,7 @@ if __name__ == "__main__":
 	argc=0
 	try:
 		opts, args = getopt.getopt(sys.argv[1:], "dilh", ["help", "debug", "info", "list", "listspots", "listblock", 
-		"launch=", "shutdown", "deployall","gatherlogs", "killall", "kill=","deploy=","master="])
+		"launch=", "shutdown", "curSpotPrice", "deployall","gatherlogs", "killall", "kill=","deploy=","master="])
         except getopt.GetoptError, err:
 		# print help information and exit:
 		print str(err) # will print something like "option -a not recognized"
@@ -397,11 +397,17 @@ if __name__ == "__main__":
 				if n.status=='running':
 					n.gather(logsDir+"/"+timestamp,sshKey)
 			saveState()
+		elif o in ("--curSpotPrice"):
+			print "Resolving current Spot Price for", a,"instances.. please wait."
+			print "\n"
+			print "Current Price:", curSpotCost(a), "$"
+			saveState()
 		elif o in ("--help"):
 			print 	"Help:\n"
-			print	"./masterSpore.py --help - help menue"
+			print	"./masterSpore.py --help - help menu"
 			print	"./masterSpore.py -d - enable debug output" 
 			print	"./masterSpore.py -l - List all entires"
+			print   "./masterSpore.py --curSpotPrice <spot-size> - looks up current spot price"
 			print	"./masterSpore.py --killall - kills all nodes/instances currently associated with your account"
 			print	"./masterSpore.py --kill <inst-id> - kills a specific instance, use -l to find the inst-id"
 			print	"./masterSpore.py --master <inst-size> - this will create a master node/instance which will not be a spot instance"
