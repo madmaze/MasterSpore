@@ -116,8 +116,9 @@ class CLnode:
 			if launch is True:
 				# LAUNCH Payload
 				try:
-					res=GF.run("ssh -o StrictHostKeyChecking=no -i "+sshKey+" ubuntu@"+self.url+" 'python ~/payload/setup.py'")
-					print "ssh -o StrictHostKeyChecking=no -i "+sshKey+" ubuntu@"+self.url+" 'python ~/payload/setup.py'"
+					print "ssh -o StrictHostKeyChecking=no -i "+sshKey+" ubuntu@"+self.url+" 'python ~/payload/setup.py&'"
+					res=GF.run("ssh -o StrictHostKeyChecking=no -i "+sshKey+" ubuntu@"+self.url+" 'screen -dm python ~/payload/setup.py'")
+					
 					self.deployed = True
 				except Exception as x:
 					print x, "\n", res
