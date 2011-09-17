@@ -239,11 +239,11 @@ if __name__ == "__main__":
 	payload='./bundle.tar'
 	logsDir='./logs'
 	payloadDir='./payload'
-	print "Cluster manager v0.2";
+	print "MasterSpore v0.2\n=--------------=\n";
 	argc=0
 	try:
 		opts, args = getopt.getopt(sys.argv[1:], "dilh", ["help", "debug", "info", "list", "listspots", "listblock", 
-		"launch=", "shutdown", "curSpotPrice", "deployall","gatherlogs", "killall", "kill=","deploy=","master="])
+		"launch=", "shutdown", "curSpotPrice=", "deployall","gatherlogs", "killall", "kill=","deploy=","master="])
         except getopt.GetoptError, err:
 		# print help information and exit:
 		print str(err) # will print something like "option -a not recognized"
@@ -398,9 +398,12 @@ if __name__ == "__main__":
 					n.gather(logsDir+"/"+timestamp,sshKey)
 			saveState()
 		elif o in ("--curSpotPrice"):
-			print "Resolving current Spot Price for", a,"instances.. please wait."
-			print "\n"
-			print "Current Price:", curSpotCost(a), "$"
+			if len(a) < 2:
+				print "plese specify an instance size and try again"
+				sys.exit(-1)
+			print "Resolving current Spot Price for", a,"instances.. please wait.\n"
+			curCost = curSpotCost(a)
+			print "Current Price:", curCost, "$/hr"
 			saveState()
 		elif o in ("--help"):
 			print 	"Help:\n"
