@@ -399,13 +399,15 @@ if __name__ == "__main__":
 			saveState()
 		elif o in ("--help"):
 			print 	"Help:\n"
-			print	"./masterSporte.py --help - help menue"
-			print	"./masterSporte.py -d - enable debug output" 
-			print	"./masterSporte.py -l - List all entires"
-			print	"./masterSporte.py --killall - kills all nodes/instances currently associated with your account"
-			print	"./masterSporte.py --kill <inst-id> - kills a specific instance, use -l to find the inst-id"
-			print	"./masterSporte.py --master <inst-size> - this will create a master node/instance which will not be a spot instance"
-			print	"./masterSporte.py --launch <N>,<spot-size> - where N is the number of nodes/instances and spot-size is the spot-inst request size"
+			print	"./masterSpore.py --help - help menue"
+			print	"./masterSpore.py -d - enable debug output" 
+			print	"./masterSpore.py -l - List all entires"
+			print	"./masterSpore.py --killall - kills all nodes/instances currently associated with your account"
+			print	"./masterSpore.py --kill <inst-id> - kills a specific instance, use -l to find the inst-id"
+			print	"./masterSpore.py --master <inst-size> - this will create a master node/instance which will not be a spot instance"
+			print	"./masterSpore.py --launch <N>,<spot-size> - where N is the number of nodes/instances and spot-size is the spot-inst request size"
 			print	"\n\nSpot/Inst sizes: t1.micro, m1.small etc etc.."
 		else:
 			assert False, "unhandled option\n try: --help"
+	if len(opts) == 0:
+		print "No provided options.. try: --help"
