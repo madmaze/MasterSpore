@@ -308,23 +308,30 @@ if __name__ == "__main__":
 			if  len(a.split(',')) == 2:
 				cnt=a.split(',')[0]
 				size=a.split(',')[1]
-				try:
-					n=int(cnt)
-					if n > 0:
-						if GF.confirmQuestion("This will create "+str(n)+" instance(s). \nAre you sure you want to continue?") is False:
-							sys.exit()
-						print "Launching "+str(n)+" instances"
-						launchCluster(ami, size, key, maxPrice, n)
-					else:
-						print "Please specify positive number"
-					
-				except Exception as x:
-					print "Please specify number after -launch"
-					print x, sys.argv[argc+1]
-				saveState()
-				sys.exit()
+			if  len(a.split(',')) == 3:
+				cnt=a.split(',')[0]
+				size=a.split(',')[1]
+				maxPrice=a.split(',')[2]
+				if int(maxPrice) == 0:
+					maxPrice=curSpotCost(size)
 			else:
 				print "Please specify in the following fashion --launch=<N>,<inst size>"
+				sys.exit()
+			try:
+				n=int(cnt)
+				if n > 0:
+					if GF.confirmQuestion("This will create "+str(n)+" instance(s). \nAre you sure you want to continue?") is False:
+						sys.exit()
+					print "Launching "+str(n)+" instances"
+					launchCluster(ami, size, key, maxPrice, n)
+				else:
+					print "Please specify positive number"
+				
+			except Exception as x:
+				print "Please specify number after -launch"
+				print x, sys.argv[argc+1]
+			saveState()
+			sys.exit()
 		elif o in ("--shutdown","--killall"):
 			# ask user for confirm
 			if GF.confirmQuestion("!!This will TERMINATE all running instances!! \nAre you sure you want to continue?") is False:
@@ -414,7 +421,8 @@ if __name__ == "__main__":
 			print	"./masterSpore.py --killall - kills all nodes/instances currently associated with your account"
 			print	"./masterSpore.py --kill <inst-id> - kills a specific instance, use -l to find the inst-id"
 			print	"./masterSpore.py --master <inst-size> - this will create a master node/instance which will not be a spot instance"
-			print	"./masterSpore.py --launch <N>,<spot-size> - where N is the number of nodes/instances and spot-size is the spot-inst request size"
+			print	"./masterSpore.py --launch <N>,<spot-size> - where N is the number of instances and spot-size, request made at current market price"
+			print	"./masterSpore.py --launch <N>,<spot-size>,<$$> - same as above but setting a cost"
 			print	"\n\nSpot/Inst sizes: t1.micro, m1.small etc etc.."
 		else:
 			assert False, "unhandled option\n try: --help"
