@@ -304,14 +304,22 @@ if __name__ == "__main__":
 					if GF.confirmQuestion("This will create a master node of size "+a2+" \nAre you sure you want to continue?") is False:
 							sys.exit()
 					launchMaster(ami,a2,key)
-			saveState() #save incase something fails
+			saveState() #save incase something fails ami-1aad5273
 			if  len(a.split(',')) == 2:
 				cnt=a.split(',')[0]
 				size=a.split(',')[1]
-			if  len(a.split(',')) == 3:
+				maxPrice=curSpotCost(size)
+			elif  len(a.split(',')) == 3:
 				cnt=a.split(',')[0]
 				size=a.split(',')[1]
 				maxPrice=a.split(',')[2]
+				if int(maxPrice) == 0:
+					maxPrice=curSpotCost(size)
+			elif  len(a.split(',')) == 4:
+				cnt=a.split(',')[0]
+				size=a.split(',')[1]
+				maxPrice=a.split(',')[2]
+				ami=a.split(',')[3]
 				if int(maxPrice) == 0:
 					maxPrice=curSpotCost(size)
 			else:
@@ -320,7 +328,7 @@ if __name__ == "__main__":
 			try:
 				n=int(cnt)
 				if n > 0:
-					if GF.confirmQuestion("This will create "+str(n)+" instance(s). \nAre you sure you want to continue?") is False:
+					if GF.confirmQuestion("This will create "+str(n)+" instance(s). \n"+str(cnt)+"/"+str(size)+"/"+str(maxPrice)+"/"+str(ami)+"\nAre you sure you want to continue?") is False:
 						sys.exit()
 					print "Launching "+str(n)+" instances"
 					launchCluster(ami, size, key, maxPrice, n)
